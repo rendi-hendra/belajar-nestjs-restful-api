@@ -42,38 +42,38 @@ describe('UserController', () => {
       expect(response.status).toBe(400);
       expect(response.body.errors).toBeDefined();
     });
-  });
 
-  it('should be able to register', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/api/users')
-      .send({
-        username: 'test',
-        password: 'test',
-        name: 'test',
-      });
+    it('should be able to register', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/users')
+        .send({
+          username: 'test',
+          password: 'test',
+          name: 'test',
+        });
 
-    logger.info(response.body);
+      logger.info(response.body);
 
-    expect(response.status).toBe(200);
-    expect(response.body.data.username).toBe('test');
-    expect(response.body.data.name).toBe('test');
-  });
-  it('should be rejected if username already exists', async () => {
-    await testService.deleteUser();
-    await testService.createUser();
-    const response = await request(app.getHttpServer())
-      .post('/api/users')
-      .send({
-        username: 'test',
-        password: 'test',
-        name: 'test',
-      });
+      expect(response.status).toBe(200);
+      expect(response.body.data.username).toBe('test');
+      expect(response.body.data.name).toBe('test');
+    });
 
-    logger.info(response.body);
+    it('should be rejected if username already exists', async () => {
+      await testService.createUser();
+      const response = await request(app.getHttpServer())
+        .post('/api/users')
+        .send({
+          username: 'test',
+          password: 'test',
+          name: 'test',
+        });
 
-    expect(response.status).toBe(400);
-    expect(response.body.errors).toBeDefined();
+      logger.info(response.body);
+
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toBeDefined();
+    });
   });
 
   // New
@@ -96,21 +96,50 @@ describe('UserController', () => {
       expect(response.status).toBe(400);
       expect(response.body.errors).toBeDefined();
     });
+
+    it('should be able to login', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/users/login')
+        .send({
+          username: 'test',
+          password: 'test',
+        });
+
+      logger.info(response.body);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.username).toBe('test');
+      expect(response.body.data.name).toBe('test');
+      expect(response.body.data.token).toBeDefined();
+    });
   });
 
-  it('should be able to login', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/api/users/login')
-      .send({
-        username: 'test',
-        password: 'test',
-      });
+  describe('POST /api/users/current', () => {
+    beforeEach(async () => {
+      await testService.deleteUser();
+      await testService.createUser();
+    });
+    it('should be rejected if token is invalid', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/users/current')
+        .set('Authorization', 'wrong');
 
-    logger.info(response.body);
+      logger.info(response.body);
 
-    expect(response.status).toBe(200);
-    expect(response.body.data.username).toBe('test');
-    expect(response.body.data.name).toBe('test');
-    expect(response.body.data.token).toBeDefined();
+      expect(response.status).toBe(401);
+      expect(response.body.errors).toBeDefined();
+    });
+
+    it('should be able to get user', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/users/current')
+        .set('Authorization', 'test');
+
+      logger.info(response.body);
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.username).toBe('test');
+      expect(response.body.data.name).toBe('test');
+    });
   });
 });
