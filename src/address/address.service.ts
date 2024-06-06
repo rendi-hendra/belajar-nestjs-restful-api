@@ -1,10 +1,14 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, HttpException } from '@nestjs/common';
 import { User, Address } from '@prisma/client';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { PrismaService } from '../common/prisma.service';
 import { ValidationService } from '../common/validation.service';
 import { ContactService } from '../contact/contact.service';
-import { CreateAddressRequest, AddressResponse } from '../model/address.model';
+import {
+  CreateAddressRequest,
+  AddressResponse,
+  GetAddressRequest,
+} from '../model/address.model';
 import { AddressValidation } from './address.validation';
 import { Logger } from 'winston';
 
@@ -50,5 +54,42 @@ export class AddressService {
       country: address.country,
       postal_code: address.postal_code,
     };
+  }
+
+  async checkAddressMustExists(
+    contactId: number,
+    addressId: number,
+  ): Promise<Address> {
+    const address = await this.prismaService.address.findFirst({
+      where: {
+        id: addressId,
+        contact_id: contactId,
+      },
+    });
+
+    if (!address) {
+      throw new HttpException('Address is not found', 404);
+    }
+
+    return address;
+  }
+
+  async get(user: User, request: GetAddressRequest): Promise<AddressResponse> {
+    const getRequest: GetAddressRequest = this.validationService.validate(
+      AddressValidation.GET,
+      request,
+    );
+
+    await this.contactService.checkContactMustExists(
+      user.username,
+      getRequest.contact_id,
+    );
+
+    const address = await this.checkAddressMustExists(
+      getRequest.contact_id,
+      getRequest.address_id,
+    );
+
+    return this.toAddressResponse(address);
   }
 }
