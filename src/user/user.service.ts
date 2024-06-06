@@ -76,7 +76,7 @@ export class UserService {
       throw new HttpException('Username or Password is invalid', 401);
     }
 
-    await this.prismaService.user.update({
+    user = await this.prismaService.user.update({
       where: {
         username: loginRequest.username,
       },
