@@ -8,6 +8,7 @@ import {
   CreateAddressRequest,
   AddressResponse,
   GetAddressRequest,
+  UpdateAddressRequest,
 } from '../model/address.model';
 import { AddressValidation } from './address.validation';
 import { Logger } from 'winston';
@@ -89,6 +90,36 @@ export class AddressService {
       getRequest.contact_id,
       getRequest.address_id,
     );
+
+    return this.toAddressResponse(address);
+  }
+
+  async update(
+    user: User,
+    request: UpdateAddressRequest,
+  ): Promise<AddressResponse> {
+    const updateRequest: UpdateAddressRequest = this.validationService.validate(
+      AddressValidation.UPDATE,
+      request,
+    );
+
+    await this.contactService.checkContactMustExists(
+      user.username,
+      updateRequest.contact_id,
+    );
+
+    let address = await this.checkAddressMustExists(
+      updateRequest.contact_id,
+      updateRequest.id,
+    );
+
+    address = await this.prismaService.address.update({
+      where: {
+        id: address.id,
+        contact_id: address.contact_id,
+      },
+      data: updateRequest,
+    });
 
     return this.toAddressResponse(address);
   }
